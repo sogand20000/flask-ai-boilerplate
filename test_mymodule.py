@@ -1,20 +1,10 @@
-"این ماژول تست واحد برای mymoduleانجام می دهد"
-
-import unittest
-from mymodule import square, doubler
+# استایل مدرن pytest (بدون نیاز به ساخت کلاس و ارث‌بری)
+from mymodule import doubler, square
 
 
-class TestMyModule(unittest.TestCase):
-    "کلاس تست برای توابع ریاضی"
-
-    def test_square(self):
-        "تست کردن صحت عملکرد تابع جذر یا مربع"
-        self.assertEqual(square(2), 4, "برای ورودی 2 درست نیست حطا square")
-
-    def test_doubler(self):
-        "تست کردن صحت عملکرد تابغ دوبرابر کننده"
-        self.assertEqual(doubler(3), 6)
+def test_square():
+    assert square(2) == 8
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_doubler():
+    assert doubler(2) == 4
