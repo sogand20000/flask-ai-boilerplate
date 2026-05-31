@@ -1,82 +1,98 @@
-"""این ماژول یک سرور ساده فلاسک را برای شروع پروژه راه‌اندازی می‌کند."""
-
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, request, url_for
 
 app = Flask(__name__)
 
+PROJECTS_DB = {
+    1: {"name": "AI Agent for Email Automation", "status": "active"},
+    2: {"name": "RAG System for Legal Documents", "status": "draft"},
+}
 
-@app.route("/")
+
+@app.route("/project/<int:project_id>", methods=["GET"])
+def get_project(project_id):
+    project = PROJECTS_DB.get(project_id)
+    if not project:
+        return jsonify(
+            {"error": "Not Found", "message": f"Project {project_id} does not exist"}
+        ), 404
+    return jsonify({"project_id": project_id, "data": project}), 200
+
+
+@app.route("/api/process", methods=["POST"])
+def process_data():
+    if request.is_json:
+        data = request.get_json()
+        user_prompt = data.get("prompt") if data else None
+    else:
+        user_prompt = request.form.get("prompt")
+
+    if not user_prompt:
+        return (
+            jsonify({"error": "Bad Request", "message": "Missing 'prompt' in data"}),
+            400,
+        )
+
+    return (
+        jsonify(
+            {
+                "status": "success",
+                "method_used": "POST",
+                "ai_response": f"Processed: {user_prompt[::-1]}",
+            }
+        ),
+        200,
+    )
+
+
+@app.route("/", methods=["GET"])
 def home():
-    """این تابع صفحه اصلی سایت را مدیریت کرده و پیام سلام بازمی‌گرداند."""
-    return "<h1>سلام! سرور فلاسک من روی ابر با موفقیت روشن شد! 🚀</h1>"
+    project_url = url_for("get_project", project_id=1)
+    process_url = url_for("process_data")
+
+    return (
+        f"<h2>Welcome to Flask AI Boilerplate!</h2>"
+        f"<p>1. Test dynamic routing (GET): "
+        f"<a href='{project_url}'>{project_url}</a></p>"
+        f"<hr>"
+        f"<p>2. Test AI Processing (POST) directly from here:</p>"
+        f"<form action='{process_url}' method='POST' style='margin-top: 10px;'>"
+        f"<textarea name='prompt' rows='3' cols='40' "
+        f"placeholder='Type your prompt here...' required>"
+        f"</textarea><br><br>"
+        f"  <button type='submit'>Send POST Request to AI</button>"
+        f"</form>"
+    )
 
 
-@app.route("/welcome")
-def welcom():
-    "welcom"
-    return render_template("index.html")
-
-
-@app.route("/api/info")
-def get_info():
-    "return information in json file"
-    data = {
-        "project_name": "flask ai project",
-        "status": "Active",
-        "version": "1.0.0",
-        "features": ["flask server", "pep8 com", "json api"],
-    }
-    return jsonify(data)
-
-
-@app.route("/api/greet", methods=["GET", "POST"])
-def greet_user():
-    """این مسیر بر اساس متد ارسالی و پارامترها، پاسخ سفارشی تولید می‌کند."""
-    if request.method == "POST":
-        data = request.json
-        if not isinstance(data, dict):
-            data = {}
-        name = data.get("name", "کاربر ناشناس")
-        return jsonify(message=f"سلام {name}! درخواست POST شما با موفقیت دریافت شد.")
-    name = request.args.get("name", "مهمان")
-    return jsonify(message=f"سلام {name}! این یک پاسخ GET است.")
-
-
-@app.route("/book/<string:isbn>")
-def get_book(isbn):
-    "example"
-    return f"you can see {isbn} book"
-
-
-@app.route("/post/<username>")
-def show_user_profile(username):
-    """این مسیر نام کاربری را از آدرس می‌گیرد و پیام خوش‌آمدگویی می‌فرستد."""
-    return jsonify(user=username, message=f"wellcome {username}")
-
-
-@app.route("/post/<int:post_id>")
-def show_post(post_id):
-    """این مسیر فقط عدد صحیح قبول می‌کند و شناسه پست را برمی‌گرداند."""
-    return jsonify(post_id=post_id, status=" show maghaleh")
-
-
-@app.route("/api/item/", defaults={"item_id": None})
-@app.route("/api/item/<int:item_id>")
-def get_item(item_id):
-    "check id item"
-    if item_id is None:
-        return jsonify(error="please add id in address api/item/5"), 400
-
-    if item_id > 10:
-        return jsonify(error="dont exist item .."), 404
-    return jsonify(item_id=item_id, status="find item")
+@app.route("/api/test", methods=["GET", "POST"])
+def test_modes():
+    if request.method == "GET":
+        name = request.args.get("name", "Guest")
+        return jsonify({"message": f"Hello {name}, this is a Get requset"}), 200
+    elif request.method == "POST":
+        data = request.get_json()
+        role = data.get("role", "User") if data else "User"
+        return jsonify({"message": f"Role '{role} updated via POST request !"}), 201
 
 
 @app.errorhandler(404)
-def page_not_found():
-    "errorhandler"
-    return jsonify(error="dont exist item", code=404), 404
+def page_not_found(e):
+    return jsonify({"error": "Resource not found", "status": 404}), 404
+
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    return (
+        jsonify(
+            {
+                "status": "error",
+                "error_code": 500,
+                "message": "An unexpected error occurred inside the Python backend.",
+            }
+        ),
+        500,
+    )
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8080)
+    app.run(debug=True, port=5002)
