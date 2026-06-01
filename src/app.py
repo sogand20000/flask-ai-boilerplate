@@ -8,15 +8,19 @@ from src.routes.ai import ai_bp
 # Load environment variables
 load_dotenv()
 
-app = Flask(__name__)
 
 basedir = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(basedir, ".env"))
 
 app = Flask(__name__)
 
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "super-secret-dev-key-12345")
+
 
 app.register_blueprint(ai_bp, url_prefix="/api")
+
+if __name__ == "__main__":
+    app.run(debug=True)
 
 
 @app.route("/", methods=["GET"])
