@@ -15,7 +15,7 @@ try:
     response = client.models.generate_content(
         model="gemini-2.5-flash",
         contents="Hello Gemini! If you can hear me, please reply"
-         " with a short sentence confirming everything is working fine.",
+        " with a short sentence confirming everything is working fine.",
     )
 
     # 4. Print the AI's response
