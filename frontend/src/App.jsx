@@ -1,25 +1,51 @@
 import { useState, useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { sendChatMessage } from "./api";
+import { getChatHistory, sendChatMessage } from "./api";
 
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const chatEndRef = useRef(null);
+  const [chatId, setChatId] = useState(() => {
+    const storageChatID = localStorage.getItem("current_chat_id");
+    return storageChatID ? parseInt(storageChatID, 10) : null;
+  });
+  useEffect(() => {
+    if (chatId) {
+      localStorage.setItem("current_chat_id", chatId);
+    }
+  }, [chatId]);
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!chatId) return;
+      try {
+        const data = await getChatHistory(chatId);
+        if (data.status === "success") {
+          setMessages(data.messages);
+        }
+      } catch (error) {
+        console.error("خطا در دریافت تاریخچه چت:", error);
+      }
+    };
 
+    fetchHistory();
+  }, []);
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const mutation = useMutation({
-    mutationFn: sendChatMessage,
+    mutationFn: (variables) => sendChatMessage(variables),
     onSuccess: (data) => {
-      setMessages((prev) => [
-        ...prev,
-        { sender: "ai", text: data.data.response },
-      ]);
+      const { response, chat_id } = data;
+
+      if (chat_id && !chatId) setChatId(chat_id);
+      debugger;
+      setMessages((prev) => [...prev, { sender: "ai", text: response }]);
     },
     onError: (error) => {
+      debugger;
+      console.error("Chat API Error:", error);
       setMessages((prev) => [
         ...prev,
         {
@@ -39,7 +65,7 @@ export default function App() {
     setMessages((prev) => [...prev, { sender: "user", text: userMessage }]);
     setInput("");
 
-    mutation.mutate(userMessage);
+    mutation.mutate({ message: userMessage, chat_id: chatId });
   };
 
   return (

@@ -8,7 +8,12 @@ export const api = axios.create({
   },
 });
 
-export const sendChatMessage = async (message) => {
-  const response = await api.post("/chat", { message });
+export const sendChatMessage = async (payload) => {
+  const response = await api.post("/chat", payload);
+  return response.data;
+};
+
+export const getChatHistory = async (chatId) => {
+  const response = await api.get(`/chat/${chatId}/history`);
   return response.data;
 };
