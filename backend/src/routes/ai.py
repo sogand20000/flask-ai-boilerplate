@@ -1,10 +1,12 @@
-import os
-
-from dotenv import load_dotenv
 from flask import Blueprint, jsonify, request
 from google import genai
 from google.genai import errors, types
-from supabase import Client, create_client
+from backend.src.services.supabase_service import (
+    get_chat_by_id,
+    insert_new_chat_history,
+    supabase,
+    update_chat_history,
+)
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -12,16 +14,8 @@ from tenacity import (
     wait_exponential,
 )
 
-load_dotenv()
-
 ai_bp = Blueprint("ai", __name__)
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
-supabase: Client = create_client(
-    SUPABASE_URL,
-    SUPABASE_KEY,
-)
 
 try:
     ai_client = genai.Client()
@@ -42,36 +36,25 @@ def call_gemini_with_retry(client, history):
 
 @ai_bp.route("/chat", methods=["POST"])
 def chat():
-    print("\n--- 🚀 [START] New Chat Request Received ---")
     try:
         data = request.get_json() or {}
-        print(f"📥 1. Raw Data received from Frontend: {data}")
         user_message = data.get("message")
         chat_id = data.get("chat_id")
-        print(
-            f"🔍 2. Parsed Variables -> message: '{user_message}', chat_id: {chat_id} (Type: {type(chat_id)})"
-        )
+
         if not user_message:
-            print("⚠️ 3. Validation Failed: Message is empty!")
             return jsonify({"status": "error", "message": "Message is required"}), 400
 
         chat_history = []
         is_new_chat = True
         current_chat_id = None
-        print("❓ 4. Checking if chat_id exists...")
 
         if chat_id is not None:
-            print(f"🔍 4.1. chat_id: {chat_id} (Type: {type(chat_id)})")
             try:
                 chat_id = int(chat_id)
-                print(f"   -> Successfully converted chat_id to int: {chat_id}")
             except (ValueError, TypeError) as e:
-                print(f"   ❌ 4a. Conversion Failed! Error: {str(e)}")
                 return jsonify({"status": "error", "message": "Invalid chat_id"}), 401
 
-            db_response = (
-                supabase.table("chats").select("history").eq("id", chat_id).execute()
-            )
+            db_response = get_chat_by_id(chat_id)
 
             if db_response.data and len(db_response.data) > 0:
                 db_record = db_response.data[0]
@@ -97,28 +80,16 @@ def chat():
                 )
             )
 
-        config = types.GenerateContentConfig(
-            system_instruction="You are an expert AI assistant. Provide concise, clear,"
-            " and helpful answers."
-        )
-        print(f"🤖 Calling Gemini API...{contents}")
         gemini_response = call_gemini_with_retry(ai_client, contents)
         ai_response_text = gemini_response.text
-        print("✨ Gemini Response Success!")
-        chat_history.append({"role": "role", "parts": [ai_response_text]})
+        chat_history.append({"role": "model", "parts": [ai_response_text]})
 
         if not is_new_chat and current_chat_id is not None:
-            # آپدیت چت موجود
-
-            supabase.table("chats").update({"history": chat_history}).eq(
-                "id", current_chat_id
-            ).execute()
+            update_chat_history(current_chat_id, chat_history)
 
         else:
-            # ایجاد یک رکورد جدید و دریافت آی‌دی تولید شده توسط دیتابیس
-            insert_response = (
-                supabase.table("chats").insert({"history": chat_history}).execute()
-            )
+            insert_response = insert_new_chat_history(chat_history)
+
             if insert_response.data and len(insert_response.data) > 0:
                 current_chat_id = insert_response.data[0]["id"]
             else:

@@ -1,10 +1,10 @@
 import os
 from pathlib import Path
 
+from backend.src.routes.ai import ai_bp
 from dotenv import load_dotenv
 from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
-from src.routes.ai import ai_bp
 
 # Load environment variables
 load_dotenv()

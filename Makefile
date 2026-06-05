@@ -1,8 +1,7 @@
 .PHONY: run lint format test clean
 
 run:
-	python -m src.app
-
+	PYTHONPATH=backend python -m backend.src.app
 lint:
 	ruff check .
 

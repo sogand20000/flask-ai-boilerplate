@@ -1,5 +1,5 @@
 # استایل مدرن pytest (بدون نیاز به ساخت کلاس و ارث‌بری)
-from mymodule import doubler, square
+from backend.src.mymodule import doubler, square
 
 
 def test_square():

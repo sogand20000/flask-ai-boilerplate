@@ -1,4 +1,4 @@
-from src.myproject.module1 import doubler, square
+from backend.src.myproject.module1 import doubler, square
 
 
 def test_my_package_functions():
