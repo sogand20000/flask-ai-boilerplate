@@ -57,11 +57,10 @@ def insert_new_chat_history(chat_history: list):
         print("❌ Supabase client is not initialized!")
         return None
     try:
-        if not SUPABASE_URL or not SUPABASE_KEY or not supabase:
-            insert_response = (
-                supabase.table("chats").insert({"history": chat_history}).execute()
-            )
-            return insert_response
+        insert_response = (
+            supabase.table("chats").insert({"history": chat_history}).execute()
+        )
+        return insert_response
     except Exception as e:
         print(f"Error inserting new chat history: {e}")
         return None
