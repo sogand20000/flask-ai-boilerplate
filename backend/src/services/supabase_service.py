@@ -11,7 +11,9 @@ SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     print(
-        "⚠️ Warning: Supabase client not initialized. Check SUPABASE_URL and SUPABASE_KEY in ."
+        "⚠️ Warning: Supabase client not initialized. "
+        "Check SUPABASE_URL and SUPABASE_KEY"
+        " in ."
         "env file."
     )
 else:

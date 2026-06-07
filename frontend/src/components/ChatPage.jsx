@@ -10,11 +10,13 @@ export default function ChatPage() {
     return storageChatID ? parseInt(storageChatID, 10) : null;
   });
   const [isStreaming, setIsStreaming] = useState(false);
+
   useEffect(() => {
     if (chatId) {
-      localStorage.setItem("current_chat_id", chatId);
+      localStorage.setItem("current_chat_id", chatId.toString());
     }
   }, [chatId]);
+
   useEffect(() => {
     const fetchHistory = async () => {
       if (!chatId) return;
@@ -29,21 +31,24 @@ export default function ChatPage() {
     };
 
     fetchHistory();
-  }, []);
+  }, [chatId]);
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isStreaming]);
 
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim() || isStreaming) return;
 
     const userMessage = input.trim();
+
     setMessages((prev) => [...prev, { sender: "user", text: userMessage }]);
     setInput("");
-
     setIsStreaming(true);
+
     setMessages((prev) => [...prev, { sender: "ai", text: "" }]);
+
     try {
       const response = await fetch("/api/chat/stream", {
         method: "POST",
@@ -52,15 +57,19 @@ export default function ChatPage() {
         },
         body: JSON.stringify({ message: userMessage, chat_id: chatId }),
       });
+
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
+
       console.log("response:", response);
+
       const newChatId = response.headers.get("X-Chat-ID");
       if (newChatId && !chatId) {
         setChatId(parseInt(newChatId, 10));
         localStorage.setItem("current_chat_id", newChatId);
       }
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder("utf-8");
       let aiTextRef = "";
@@ -68,7 +77,6 @@ export default function ChatPage() {
 
       while (true) {
         const { value, done } = await reader.read();
-
         if (done) break;
 
         lineBuffer += decoder.decode(value, { stream: true });
@@ -85,13 +93,9 @@ export default function ChatPage() {
 
         for (const line of lines) {
           const trimmedLine = line.trim();
-
           if (trimmedLine.startsWith("data: ")) {
             const actualText = line.substring(6);
             aiTextRef += actualText;
-            hasNewText = true;
-          } else if (trimmedLine !== "") {
-            aiTextRef += "\n" + line;
             hasNewText = true;
           }
         }
@@ -104,7 +108,10 @@ export default function ChatPage() {
               .lastIndexOf("ai");
 
             if (aiMessageIndex !== -1) {
-              updated[aiMessageIndex].text = aiTextRef;
+              updated[aiMessageIndex] = {
+                ...updated[aiMessageIndex],
+                text: aiTextRef,
+              };
             }
             return updated;
           });
@@ -153,40 +160,42 @@ export default function ChatPage() {
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+            className={`flex ${msg.sender === "user" ? "  justify-end" : "justify-start"}`}
           >
-            <div
-              className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm shadow-md leading-relaxed ${
-                msg.sender === "user"
-                  ? "bg-cyan-600 text-white rounded-br-none"
-                  : msg.isError
-                    ? "bg-red-950/50 border border-red-500/30 text-red-200 rounded-bl-none"
-                    : "bg-slate-850 border border-slate-700/60 text-slate-200 rounded-b-none"
-              }`}
-            >
-              <p className="whitespace-pre-wrap">{msg.text}</p>
-            </div>
+            {msg.sender === "ai" &&
+            !msg.text &&
+            isStreaming &&
+            index === messages.length - 1 ? (
+              <div className="flex space-x-1.5 items-center py-1 px-2">
+                <div
+                  className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce"
+                  style={{ animationDelay: "0ms" }}
+                ></div>
+                <div
+                  className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce"
+                  style={{ animationDelay: "150ms" }}
+                ></div>
+                <div
+                  className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce"
+                  style={{ animationDelay: "300ms" }}
+                ></div>
+              </div>
+            ) : (
+              <div
+                className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm shadow-md leading-relaxed ${
+                  msg.sender === "user"
+                    ? "bg-cyan-600 text-white rounded-br-none"
+                    : msg.isError
+                      ? "bg-red-950/50 border border-red-500/30 text-red-200 rounded-bl-none"
+                      : "bg-slate-850 border border-slate-700/60 text-slate-200 rounded-b-none"
+                }`}
+              >
+                <p className="whitespace-pre-wrap">{msg.text}</p>
+              </div>
+            )}
           </div>
         ))}
 
-        {isStreaming && (
-          <div className="flex justify-start">
-            <div className="bg-slate-800/60 border border-slate-700/40 rounded-2xl rounded-bl-none px-4 py-3 flex space-x-1.5 items-center">
-              <div
-                className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce"
-                style={{ animationDelay: "0ms" }}
-              ></div>
-              <div
-                className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce"
-                style={{ animationDelay: "150ms" }}
-              ></div>
-              <div
-                className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce"
-                style={{ animationDelay: "300ms" }}
-              ></div>
-            </div>
-          </div>
-        )}
         <div ref={chatEndRef} />
       </div>
 

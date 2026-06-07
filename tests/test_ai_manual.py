@@ -7,7 +7,8 @@ with requests.Session() as session:
     # --- FIRST MESSAGE: Introduction ---
     payload1 = {"message": "Hello, my name is Somayeh and I have a Flask project."}
 
-    # FIXED: Changed from requests.post to session.post to correctly track the session cookie
+    # FIXED: Changed from requests.post to session.post to correctly track the session
+    # cookie
     r1 = session.post(url, json=payload1)
 
     print(f"Status Code 1: {r1.status_code}")
