@@ -1,9 +1,26 @@
-myenv/
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# Node modules 
+node_modules/
+frontend/node_modules/
+
+# Production build
+frontend/dist/
+dist/
+
+# Python cache
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-.venv/
-venv/
-.pytest_cache/
+**/__pycache__/
+backend/src/**/__pycache__/
+
+# Environment variables
 .env
