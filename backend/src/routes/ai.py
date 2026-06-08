@@ -7,6 +7,7 @@ from backend.src.services.supabase_service import (
     supabase,
     update_chat_history,
 )
+from backend.src.services.tts_service import generate_speech_stream
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from google import genai
@@ -29,6 +30,11 @@ class ChatBody(BaseModel):
     chat_id: Optional[int] = Field(
         None, description="The chat ID to continue the conversation"
     )
+
+
+class TTSBody(BaseModel):
+    text: str = Field(..., min_length=1)
+    voice: Optional[str] = Field("alloy")
 
 
 try:
@@ -158,3 +164,22 @@ async def get_chat_history(chat_id: int):
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch history: {str(e)}"
         )
+
+
+@ai_router.post("/chat/tts")
+async def text_to_speach_endpoint(body: TTSBody):
+
+    try:
+        audio_generator = generate_speech_stream(text=body.text, voice=body.voice)
+        return StreamingResponse(
+            audio_generator,
+            media_type="audio/mpeg",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
+    except Exception as e:
+        print(f"❌ Error in TTS Endpoint: {e}")
+        raise HTTPException(status_code=500, detail=f"TTS mapping failed: {str(e)}")

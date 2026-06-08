@@ -20,3 +20,9 @@ export const getChatHistory = async (chatId) => {
   const response = await api.get(`/chat/${chatId}/history`);
   return response.data;
 };
+
+export const generateSpeech = async ({ text, voice = "alloy" }) =>{
+  
+  const response =await api.post("/chat/tts",{text,voice},{responseType:"blob"})
+  return response.data;
+}

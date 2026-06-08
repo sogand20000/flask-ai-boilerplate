@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { getChatHistory, sendChatMessage } from "../api";
+import { getChatHistory, sendChatMessage, generateSpeech } from "../api";
 
 export default function ChatPage() {
   const [messages, setMessages] = useState([]);
@@ -10,6 +10,10 @@ export default function ChatPage() {
     return storageChatID ? parseInt(storageChatID, 10) : null;
   });
   const [isStreaming, setIsStreaming] = useState(false);
+
+  const [playingMessageIndex, setPlayingMessageIndex] = useState(null);
+  const [isAudioLoading, setIsAudioLoading] = useState(false);
+  const audioRef = useRef(null);
 
   useEffect(() => {
     if (chatId) {
@@ -37,6 +41,43 @@ export default function ChatPage() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isStreaming]);
 
+  const handlePlaySpeech = async (text, index) => {
+    
+    if (playingMessageIndex === index) {
+      audioRef.current?.pause();
+      setPlayingMessageIndex(null);
+      return;
+    }
+
+    try {
+      setIsAudioLoading(true);
+      setPlayingMessageIndex(index);
+
+      const audioBlob = await generateSpeech({ text: text, voice: "alloy" });
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+
+      audioRef.current = new Audio(audioUrl);
+
+      audioRef.current.oncanplaythrough = () => {
+        setIsAudioLoading(false);
+      };
+
+      audioRef.current.onended = () => {
+        setPlayingMessageIndex(null);
+      };
+
+      await audioRef.current.play();
+    } catch (error) {
+      console.error("Audio playback error:", error);
+      setPlayingMessageIndex(null);
+      setIsAudioLoading(false);
+    }
+  };
+
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim() || isStreaming) return;
@@ -62,8 +103,6 @@ export default function ChatPage() {
         throw new Error("Network response was not ok");
       }
 
-      console.log("response:", response);
-
       const newChatId = response.headers.get("X-Chat-ID");
       if (newChatId && !chatId) {
         setChatId(parseInt(newChatId, 10));
@@ -80,11 +119,6 @@ export default function ChatPage() {
         if (done) break;
 
         lineBuffer += decoder.decode(value, { stream: true });
-
-        console.log(
-          "📥 Raw Chunk Received from Backend:",
-          JSON.stringify(lineBuffer),
-        );
 
         const lines = lineBuffer.split("\n");
         lineBuffer = lines.pop() || "";
@@ -121,9 +155,7 @@ export default function ChatPage() {
       console.error("Stream API Error:", error);
       setMessages((prev) => {
         const updated = [...prev];
-
         const aiMessageIndex = updated.map((m) => m.sender).lastIndexOf("ai");
-
         if (aiMessageIndex !== -1) {
           updated[aiMessageIndex] = {
             sender: "ai",
@@ -153,14 +185,14 @@ export default function ChatPage() {
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-slate-500 space-y-2">
             <span className="text-4xl">🤖</span>
-            <p>Start a conversation with the AI assistant...</p>{" "}
+            <p>Start a conversation with the AI assistant...</p>
           </div>
         )}
 
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`flex ${msg.sender === "user" ? "  justify-end" : "justify-start"}`}
+            className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"} items-center gap-2`}
           >
             {msg.sender === "ai" &&
             !msg.text &&
@@ -181,17 +213,42 @@ export default function ChatPage() {
                 ></div>
               </div>
             ) : (
-              <div
-                className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm shadow-md leading-relaxed ${
-                  msg.sender === "user"
-                    ? "bg-cyan-600 text-white rounded-br-none"
-                    : msg.isError
-                      ? "bg-red-950/50 border border-red-500/30 text-red-200 rounded-bl-none"
-                      : "bg-slate-850 border border-slate-700/60 text-slate-200 rounded-b-none"
-                }`}
-              >
-                <p className="whitespace-pre-wrap">{msg.text}</p>
-              </div>
+              // 🌟 اصلاح ریشه مشترک تگ‌ها با Fragment به منظور رفع خطای ساختاری Vite
+              <>
+                <div
+                  className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm shadow-md leading-relaxed ${
+                    msg.sender === "user"
+                      ? "bg-cyan-600 text-white rounded-br-none"
+                      : msg.isError
+                        ? "bg-red-950/50 border border-red-500/30 text-red-200 rounded-bl-none"
+                        : "bg-slate-850 border border-slate-700/60 text-slate-200 rounded-bl-none"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap">{msg.text}</p>
+                </div>
+
+               
+                {msg.sender === "ai" && msg.text && (
+                  <button
+                    onClick={() => handlePlaySpeech(msg.text, index)}
+                    disabled={isStreaming}
+                    className="p-2 rounded-xl bg-slate-800 border border-slate-700/60 hover:border-cyan-500/50 text-slate-400 hover:text-cyan-400 transition-all active:scale-95 disabled:opacity-40 cursor-pointer shadow-sm self-center flex items-center justify-center min-w-[36px] min-h-[36px]"
+                    title="Play"
+                  >
+                    {playingMessageIndex === index ? (
+                      isAudioLoading ? (
+                        <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <span className="text-xs font-medium animate-pulse text-cyan-400">
+                          ⏸️
+                        </span>
+                      )
+                    ) : (
+                      <span className="text-sm">🔊</span>
+                    )}
+                  </button>
+                )}
+              </>
             )}
           </div>
         ))}
