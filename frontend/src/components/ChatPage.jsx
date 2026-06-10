@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { getChatHistory, sendChatMessage } from "../api";
+import { getChatHistory } from "../api";
 
 export default function ChatPage() {
   const [messages, setMessages] = useState([]);
@@ -38,6 +38,7 @@ export default function ChatPage() {
   }, [messages, isStreaming]);
 
   const handleSend = async (e) => {
+    debugger
     e.preventDefault();
     if (!input.trim() || isStreaming) return;
 

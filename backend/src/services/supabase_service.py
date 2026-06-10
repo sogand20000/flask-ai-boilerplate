@@ -3,6 +3,8 @@ import os
 from dotenv import load_dotenv
 from supabase import Client, create_client
 
+from backend.src.services.rag_service import get_embedding
+
 load_dotenv()
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
@@ -66,3 +68,46 @@ def insert_new_chat_history(chat_history: list):
     except Exception as e:
         print(f"Error inserting new chat history: {e}")
         return None
+
+
+def insert_document(content: str, metadata: dict = None):
+    """
+    این تابع یک متن را می‌گیرد، بردار آن را می‌سازد و در جدول documents در Supabase ذخیره می‌کند.
+    """
+    # ۱. برای جلوگیری از لوپ چرخشی، ایمپورت سابابیس را داخل تابع انجام می‌دهیم
+    from backend.src.services.supabase_service import supabase
+
+    if supabase is None:
+        print("❌ Supabase client is not initialized!")
+        return False
+
+    try:
+        # ۲. تولید بردار عددی برای متن با استفاده از جمینای
+        embedding = get_embedding(content)
+        if embedding:
+            print(f"📊 [DEBUG] Length of generated embedding: {len(embedding)}")
+
+        if not embedding:
+            print("❌ Failed to store document because embedding generation failed.")
+            return False
+
+        # ۳. ساخت دیکشنری داده‌ها برای سابابیس
+        data = {
+            "content": content,
+            "metadata": metadata or {},
+            "embedding": embedding,  # همان آرایه ۷۶۸ عددی
+        }
+
+        # ۴. درج واقعی دیتا در جدول documents
+        response = supabase.table("documents").insert(data).execute()
+
+        if response.data and len(response.data) > 0:
+            print(
+                f"✅ Document successfully saved to Supabase! ID: {response.data[0]['id']}"
+            )
+            return True
+        return False
+
+    except Exception as e:
+        print(f"❌ Error inserting document to Supabase: {e}")
+        return False

@@ -1,8 +1,10 @@
 import asyncio
 from typing import Optional
 
+from backend.src.services.rag_service import retrieve_relevant_context
 from backend.src.services.supabase_service import (
     get_chat_by_id,
+    insert_document,
     insert_new_chat_history,
     supabase,
     update_chat_history,
@@ -74,6 +76,18 @@ async def chat_stream(body: ChatBody):
         else:
             raise HTTPException(status_code=404, detail="Chat ID not found")
 
+    context = await asyncio.to_thread(retrieve_relevant_context, user_message)
+
+    if context:
+        enhanced_message = (
+            f"دستورالعمل: برای پاسخ به پیام کاربر، از اطلاعات معتبر زیر استفاده کن. "
+            f"اگر پاسخ در متن زیر نیست، با استفاده از دانش عمومی خودت پاسخ بده اما اشاره کن که در اسناد یافت نشد.\n\n"
+            f"اطلاعات بازیابی شده از دیتابیس:\n{context}\n\n"
+            f"پیام کاربر: {user_message}"
+        )
+    else:
+        enhanced_message = user_message
+
     chat_history.append({"role": "user", "parts": [user_message]})
 
     contents = [
@@ -81,8 +95,14 @@ async def chat_stream(body: ChatBody):
             role=msg["role"],
             parts=[types.Part.from_text(text=msg["parts"][0])],
         )
-        for msg in chat_history
+        for msg in chat_history[:-1]
     ]
+    contents.append(
+        types.Content(
+            role="user",
+            parts=[types.Part.from_text(text=enhanced_message)],
+        )
+    )
 
     if current_chat_id is None:
         insert_response = await asyncio.to_thread(insert_new_chat_history, chat_history)
@@ -158,3 +178,18 @@ async def get_chat_history(chat_id: int):
         raise HTTPException(
             status_code=500, detail=f"Failed to fetch history: {str(e)}"
         )
+
+
+class KnowledgeBody(BaseModel):
+    content: str = Field(..., min_length=10, description="متن دانش")
+    category: Optional[str] = "General"
+
+
+@ai_router.post("/knowledge/add")
+async def add_knowledge(body: KnowledgeBody):
+    success = await asyncio.to_thread(
+        insert_document, content=body.content, metadata={"category": body.category}
+    )
+    if success:
+        return {"status": "success", "message": "دانش با موفقیت برداری و ذخیره شد."}
+    raise HTTPException(status_code=500, detail="خطا در ذخیره‌سازی")
