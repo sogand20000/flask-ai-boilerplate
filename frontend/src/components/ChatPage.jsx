@@ -137,11 +137,6 @@ export default function ChatPage() {
       setIsStreaming(false);
     }
   };
-  const isRTL = (text) => {
-    if (!text) return false;
-    const rtlChars = /[\u0600-\u06FF\u0750-\u077F\u0590-\u05FF\uFE70-\uFEFF]/;
-    return rtlChars.test(text.trim().charAt(0));
-  };
 
   return (
     <div className="flex flex-col h-screen bg-slate-900 text-slate-100 font-sans">
@@ -197,7 +192,7 @@ export default function ChatPage() {
                     : "bg-slate-850 border border-slate-700/60 text-slate-200 rounded-b-none"
                 }`}
               >
-                <p className="whitespace-pre-wrap message-text">{msg.text}</p>
+                <p className="whitespace-pre-wrap message-text" >{msg.text}</p>
               </div>
             )}
           </div>

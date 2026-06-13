@@ -12,7 +12,6 @@ client = genai.Client(api_key=api_key)
 
 
 def get_embedding(text: str):
-    """تبدیل متن به بردار ۷۶۸ بعدی جمینای"""
     try:
         response = client.models.embed_content(
             model="gemini-embedding-001",
