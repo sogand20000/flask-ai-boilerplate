@@ -77,13 +77,13 @@ async def chat_stream(body: ChatBody):
             raise HTTPException(status_code=404, detail="Chat ID not found")
 
     context = await asyncio.to_thread(retrieve_relevant_context, user_message)
-
     if context:
         enhanced_message = (
-            f"دستورالعمل: برای پاسخ به پیام کاربر، از اطلاعات معتبر زیر استفاده کن. "
-            f"اگر پاسخ در متن زیر نیست، با استفاده از دانش عمومی خودت پاسخ بده اما اشاره کن که در اسناد یافت نشد.\n\n"
-            f"اطلاعات بازیابی شده از دیتابیس:\n{context}\n\n"
-            f"پیام کاربر: {user_message}"
+            f"[INSTRUCTION]\n"
+            f"Answer the user's question using the provided context below. If the context does not "
+            f"contain the answer, rely on your general knowledge but state clearly that it wasn't found in the documents.\n\n"
+            f"[CONTEXT]\n{context}\n\n"
+            f"[USER QUESTION]\n{user_message}"
         )
     else:
         enhanced_message = user_message
@@ -181,7 +181,9 @@ async def get_chat_history(chat_id: int):
 
 
 class KnowledgeBody(BaseModel):
-    content: str = Field(..., min_length=10, description="متن دانش")
+    content: str = Field(
+        ..., min_length=10, description="The text content of the knowledge base"
+    )
     category: Optional[str] = "General"
 
 
@@ -191,5 +193,8 @@ async def add_knowledge(body: KnowledgeBody):
         insert_document, content=body.content, metadata={"category": body.category}
     )
     if success:
-        return {"status": "success", "message": "دانش با موفقیت برداری و ذخیره شد."}
-    raise HTTPException(status_code=500, detail="خطا در ذخیره‌سازی")
+        return {
+            "status": "success",
+            "message": "Knowledge successfully vectorized and stored.",
+        }
+    raise HTTPException(status_code=500, detail="Internal server error during storage")
