@@ -38,7 +38,6 @@ export default function ChatPage() {
   }, [messages, isStreaming]);
 
   const handleSend = async (e) => {
-    debugger
     e.preventDefault();
     if (!input.trim() || isStreaming) return;
 
@@ -84,7 +83,7 @@ export default function ChatPage() {
 
         console.log(
           "📥 Raw Chunk Received from Backend:",
-          JSON.stringify(lineBuffer),
+          JSON.stringify(lineBuffer)
         );
 
         const lines = lineBuffer.split("\n");
@@ -138,6 +137,11 @@ export default function ChatPage() {
       setIsStreaming(false);
     }
   };
+  const isRTL = (text) => {
+    if (!text) return false;
+    const rtlChars = /[\u0600-\u06FF\u0750-\u077F\u0590-\u05FF\uFE70-\uFEFF]/;
+    return rtlChars.test(text.trim().charAt(0));
+  };
 
   return (
     <div className="flex flex-col h-screen bg-slate-900 text-slate-100 font-sans">
@@ -150,7 +154,7 @@ export default function ChatPage() {
         </p>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-4xl w-full mx-auto">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-4xl w-full mx-auto ">
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-slate-500 space-y-2">
             <span className="text-4xl">🤖</span>
@@ -161,7 +165,9 @@ export default function ChatPage() {
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`flex ${msg.sender === "user" ? "  justify-end" : "justify-start"}`}
+            className={`flex ${
+              msg.sender === "user" ? "  justify-end" : "justify-start"
+            }`}
           >
             {msg.sender === "ai" &&
             !msg.text &&
@@ -187,11 +193,11 @@ export default function ChatPage() {
                   msg.sender === "user"
                     ? "bg-cyan-600 text-white rounded-br-none"
                     : msg.isError
-                      ? "bg-red-950/50 border border-red-500/30 text-red-200 rounded-bl-none"
-                      : "bg-slate-850 border border-slate-700/60 text-slate-200 rounded-b-none"
+                    ? "bg-red-950/50 border border-red-500/30 text-red-200 rounded-bl-none"
+                    : "bg-slate-850 border border-slate-700/60 text-slate-200 rounded-b-none"
                 }`}
               >
-                <p className="whitespace-pre-wrap">{msg.text}</p>
+                <p className="whitespace-pre-wrap message-text">{msg.text}</p>
               </div>
             )}
           </div>
