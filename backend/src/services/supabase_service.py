@@ -1,7 +1,8 @@
 import os
+
+from backend.src.services.rag_service import get_embedding
 from dotenv import load_dotenv
 from supabase import Client, create_client
-from backend.src.services.rag_service import get_embedding
 
 load_dotenv()
 
@@ -77,12 +78,12 @@ def insert_document(content: str, metadata: dict = None):
             embedding = get_embedding(chunk)
 
             if not embedding:
-                print(f"❌ Failed to generate embedding for chunk #{i+1}")
+                print(f"❌ Failed to generate embedding for chunk #{i + 1}")
                 success_all = False
                 continue
 
             chunk_metadata = (metadata or {}).copy()
-            chunk_metadata["chunk_index"] = i   
+            chunk_metadata["chunk_index"] = i
             chunk_metadata["total_chunks"] = len(chunks)
 
             data = {
@@ -94,7 +95,9 @@ def insert_document(content: str, metadata: dict = None):
             response = supabase.table("documents").insert(data).execute()
 
             if response.data and len(response.data) > 0:
-                print(f"✅ Chunk #{i+1}/{len(chunks)} successfully saved to Supabase! ID: {response.data[0]['id']}")
+                print(
+                    f"✅ Chunk #{i + 1}/{len(chunks)} successfully saved to Supabase! ID: {response.data[0]['id']}"
+                )
             else:
                 success_all = False
 
@@ -117,15 +120,15 @@ def chunk_text_smart(text: str, chunk_size: int = 1000, overlap: int = 200) -> l
             if current_chunk:
                 chunks.append(current_chunk.strip())
 
-            overlap_start = max(0, len(current_chunk) - overlap)    
+            overlap_start = max(0, len(current_chunk) - overlap)
             current_chunk = current_chunk[overlap_start:] + "\n" + para
         else:
             if current_chunk:
                 current_chunk += "\n" + para
             else:
-                current_chunk = para       
+                current_chunk = para
 
     if current_chunk:
         chunks.append(current_chunk.strip())
-        
+
     return chunks

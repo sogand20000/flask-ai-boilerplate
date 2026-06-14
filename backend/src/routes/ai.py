@@ -1,6 +1,6 @@
 import asyncio
-from typing import Optional
 import sys
+from typing import Optional
 
 from backend.src.services.rag_service import retrieve_relevant_context
 from backend.src.services.supabase_service import (
@@ -105,7 +105,7 @@ async def chat_stream(body: ChatBody):
                 text_content = first_part.get("text", "")
             else:
                 text_content = str(first_part)
-                
+
         if text_content:
             contents.append(
                 types.Content(
@@ -120,8 +120,8 @@ async def chat_stream(body: ChatBody):
             parts=[types.Part.from_text(text=enhanced_message)],
         )
     )
-    chat_history.append({"role": "user", "parts" : [ user_message]})
-    
+    chat_history.append({"role": "user", "parts": [user_message]})
+
     if current_chat_id is None:
         insert_response = await asyncio.to_thread(insert_new_chat_history, chat_history)
         if insert_response and insert_response.data:
