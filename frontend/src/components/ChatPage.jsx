@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { getChatHistory, sendChatMessage } from "../api";
+import { getChatHistory } from "../api";
 
 export default function ChatPage() {
   const [messages, setMessages] = useState([]);
@@ -83,7 +83,7 @@ export default function ChatPage() {
 
         console.log(
           "📥 Raw Chunk Received from Backend:",
-          JSON.stringify(lineBuffer),
+          JSON.stringify(lineBuffer)
         );
 
         const lines = lineBuffer.split("\n");
@@ -149,7 +149,7 @@ export default function ChatPage() {
         </p>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-4xl w-full mx-auto">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-4xl w-full mx-auto ">
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-slate-500 space-y-2">
             <span className="text-4xl">🤖</span>
@@ -160,7 +160,9 @@ export default function ChatPage() {
         {messages.map((msg, index) => (
           <div
             key={index}
-            className={`flex ${msg.sender === "user" ? "  justify-end" : "justify-start"}`}
+            className={`flex ${
+              msg.sender === "user" ? "  justify-end" : "justify-start"
+            }`}
           >
             {msg.sender === "ai" &&
             !msg.text &&
@@ -186,11 +188,11 @@ export default function ChatPage() {
                   msg.sender === "user"
                     ? "bg-cyan-600 text-white rounded-br-none"
                     : msg.isError
-                      ? "bg-red-950/50 border border-red-500/30 text-red-200 rounded-bl-none"
-                      : "bg-slate-850 border border-slate-700/60 text-slate-200 rounded-b-none"
+                    ? "bg-red-950/50 border border-red-500/30 text-red-200 rounded-bl-none"
+                    : "bg-slate-850 border border-slate-700/60 text-slate-200 rounded-b-none"
                 }`}
               >
-                <p className="whitespace-pre-wrap">{msg.text}</p>
+                <p className="whitespace-pre-wrap message-text" >{msg.text}</p>
               </div>
             )}
           </div>

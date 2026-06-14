@@ -4,6 +4,7 @@ from pathlib import Path
 from backend.src.routes.ai import ai_router
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.exceptions import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
@@ -41,18 +42,14 @@ async def global_exception_handler(request, exc):
 
 @app.get("/{path:path}")
 async def serve_frontend(path: str):
+    if path.startswith("api") or path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="Not Found")
+
     filter_path = os.path.join(frontend_folder, path)
 
     if path and os.path.exists(filter_path) and os.path.isfile(filter_path):
         return FileResponse(filter_path)
-    if path.startswith("api/"):
-        return JSONResponse(
-            status_code=404,
-            content={
-                "status": "error",
-                "message": "The requested API URL was not found.",
-            },
-        )
+
     return FileResponse(os.path.join(frontend_folder, "index.html"))
 
 
